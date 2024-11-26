@@ -9,7 +9,7 @@
 * torch-sparse 0.6.18
 * torch-scatter 2.1.2
 * tqdm 4.64.0
-<!-- torch-vision==0.14.1 -->
+* sortednp 0.5.0
 
 ## Datesets
 
