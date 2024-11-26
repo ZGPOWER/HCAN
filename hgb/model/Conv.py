@@ -1,7 +1,6 @@
 import gc
 from typing import Optional
 import torch
-from sphinx.registry import merge_source_suffix
 from torch import nn
 from torch_geometric.nn.inits import constant
 from torch_sparse import SparseTensor

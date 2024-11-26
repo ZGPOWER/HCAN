@@ -181,9 +181,3 @@ def run(args):
         if hold >= args.patience:
             break
     print("Best Macro-F1:{} Micro-F1:{}".format(best_test_macro, best_test_micro))
-    with open(f'./records/best_{args.dataset.lower()}.txt', 'a') as f:
-        f.write(f'Seed:{args.seed}, Macro-F1:{best_test_macro}, Micro-F1:{best_test_micro}, '
-                f'input_dim:{args.input_dim}, hid_dim:{args.hid_dim}, head:{args.num_heads}, num_layers:{args.num_layers}, '
-                f'L:{args.L}, lr:{args.lr}, c_heads:{args.c_heads}, input_dropout:{args.input_dropout}, '
-                f'dropout: {args.dropout}, att_dropout:{args.att_dropout}, decay:{args.decay}, pat:{args.patience}, '
-                f'use_norm:{args.use_norm}\n')

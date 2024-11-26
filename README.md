@@ -1,10 +1,14 @@
 # Heterogeneous Convlution-oriented Attention Network (HCAN)
 
-## Requirements
-To install the requirements, run:
-```sh
-pip install -r requirements.txt
-```
+## Dependencies
+* pytorch 1.13.1
+* numpy 1.23.2
+* ogb 1.3.6
+* scikit_learn 1.4.2
+* torch_geometric 2.5.3
+* torch-sparse 0.6.18
+* tqdm 4.64.0
+<!-- torch-vision==0.14.1 -->
 
 ## Datesets
 

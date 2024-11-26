@@ -255,6 +255,4 @@ for epoch in tqdm(range(1, args.epochs + 1)):
         break
 model = torch.load(f'checkpoints/mag_{cur_timestamp}.pt')
 acc = eval()
-print(f"Acc: Valid {acc[0]}, Test {acc[1]}")
-with open('record.txt', 'a') as f:
-    f.write(f"Seed={args.seed}, Best valid acc={acc[0]} test acc={acc[1]}, timestamp={cur_timestamp},args={args}\n")
+print(f"Best epoch: Valid acc {acc[0]}, Test acc {acc[1]}")
