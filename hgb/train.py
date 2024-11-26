@@ -153,7 +153,7 @@ def run(args):
     best_test_macro, best_test_micro = 0, 0
     hold = 0
     for epoch in range(args.epochs):
-        loss, t, embeds = train()
+        loss = train()
         [train_macro, valid_macro, test_macro], [train_micro, valid_micro, test_micro], valid_loss = test()
 
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f},'
