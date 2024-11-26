@@ -182,7 +182,6 @@ def get_n_params(model):
 print("# Params:", get_n_params(model))
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.decay)
 loss_func = nn.CrossEntropyLoss()
-l1_loss = nn.L1Loss()
 def train():
     model.train()
     total_loss = 0

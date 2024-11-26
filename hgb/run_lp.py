@@ -366,8 +366,3 @@ def run(args):
         if hold >= args.patience:
             break
     print("Best Test:{},{}".format(best_test_auc, best_test_mrr))
-    with open(f'./records/best_{args.dataset}.txt', 'a') as f:
-        f.write(f'Seed:{args.seed}, ROC-AUC:{best_test_auc}, MRR:{best_test_mrr}, '
-                f'input_dim:{args.input_dim}, c_heads:{args.c_heads}, hid_dim:{args.hid_dim}, head:{args.num_heads}, '
-                f'num_layers:{args.num_layers}, L:{args.L}, lr:{args.lr}, decay:{args.decay}, use_norm:{args.use_norm}, '
-                f'input_dropout: {args.input_dropout}, dropout:{args.dropout}, att_dropout:{args.att_dropout}\n')
