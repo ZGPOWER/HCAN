@@ -35,9 +35,9 @@ def run(args):
 
     if args.to_undirected:
         transform = T.Compose([T.ToUndirected(merge=True)])
-        dataset = HGBDataset(root='../../tmp/HGB', name=args.dataset, transform=transform)
+        dataset = HGBDataset(root='../tmp/HGB', name=args.dataset, transform=transform)
     else:
-        dataset = HGBDataset(root='../../tmp/HGB', name=args.dataset)
+        dataset = HGBDataset(root='../tmp/HGB', name=args.dataset)
     data = dataset[0]
     print(data)
     nc_target_type = args.nc_target_type
