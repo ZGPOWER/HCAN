@@ -101,7 +101,7 @@ class DecoupledHCOAT(nn.Module):
             nn.PReLU(),
             nn.Dropout(args.dropout),
         )
-        self.att_layers = HeteroSelfAttention(hid_dim, num_heads,num_feats)
+        self.att_layers = HeteroSelfAttention(hid_dim, num_heads)
         self.merge_channels = nn.Linear(self.num_paths*self.hid_dim, self.hid_dim)
         self.residual = nn.Linear(in_dim, hid_dim, bias=False)
         self.prelu = nn.PReLU()
