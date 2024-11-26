@@ -7,6 +7,7 @@
 * scikit_learn 1.4.2
 * torch_geometric 2.5.3
 * torch-sparse 0.6.18
+* torch-scatter 2.1.2
 * tqdm 4.64.0
 <!-- torch-vision==0.14.1 -->
 
