@@ -24,7 +24,7 @@ def run(args):
 
     seed_everything(args.seed)
     if args.dataset == 'lastfm':
-        with open('../tmp/LastFM/info.dat', 'r') as f:
+        with open('../tmp/HGB/lastfm/info.dat', 'r') as f:
             # read json
             raw_json = f.read()
             info = json.loads(raw_json)
@@ -33,7 +33,7 @@ def run(args):
         etype2key = {v: k for k, v in key2etype.items()}
         edge_index = [[], []]
         edge_type = []
-        with open('../tmp/LastFM/link.dat', 'r') as f:
+        with open('../tmp/HGB/lastfm/link.dat', 'r') as f:
             for line in f:
                 [u, v, etype, weight] = line.strip().split()
                 if u == v:
@@ -52,14 +52,14 @@ def run(args):
         edge_index = torch.tensor(edge_index)
         edge_type = torch.tensor(edge_type)
         node_type = []
-        with open('../tmp/LastFM/node.dat', 'r') as f:
+        with open('../tmp/HGB/lastfm/node.dat', 'r') as f:
             for line in f:
                 [node_id, ntype] = line.strip().split()
                 node_type.append(int(ntype))
         node_type = torch.tensor(node_type)
         test_edge_index = [[], []]
         test_edge_type = []
-        with open('../tmp/LastFM/link.dat.test', 'r') as f:
+        with open('../tmp/HGB/lastfm/link.dat.test', 'r') as f:
             for line in f:
                 [u, v, etype, weight] = line.strip().split()
                 test_edge_index[0].append(int(u))
@@ -114,10 +114,10 @@ def run(args):
 
         homo_data = homo_data.to(args.device)
     elif args.dataset == 'pubmed':
-        if not os.path.exists('../tmp/pkl/pubmed.pkl'):
+        if not os.path.exists('../tmp/HGB/pubmed/pubmed.pkl'):
             node_type = []
             x_dict = {}
-            with open('../tmp/PubMed_LP/node.dat', 'r') as f:
+            with open('../tmp/HGB/pubmed/node.dat', 'r') as f:
                 for line in f:
                     [node_id, node_name, ntype, edmbedding] = line.strip().split()
                     ntype = int(ntype)
@@ -135,7 +135,7 @@ def run(args):
             edge_index = [[], []]
             edge_weight = []
             edge_type = []
-            with open('../tmp/PubMed_LP/link.dat', 'r') as f:
+            with open('../tmp/HGB/pubmed/link.dat', 'r') as f:
                 for line in f:
                     [u, v, etype, weight] = line.strip().split()
                     if u == v:
@@ -165,7 +165,7 @@ def run(args):
             test_edge_index = [[], []]
             test_edge_type = []
             test_edge_weight = []
-            with open('../tmp/PubMed_LP/link.dat.test', 'r') as f:
+            with open('../tmp/HGB/pubmed/link.dat.test', 'r') as f:
                 for line in f:
                     [u, v, etype, weight] = line.strip().split()
                     test_edge_index[0].append(int(u))
@@ -206,10 +206,10 @@ def run(args):
             test_edge_weight = torch.tensor(test_edge_weight)
             torch.save((node_type, x_dict, input_dims_dict, edge_index, edge_type, edge_weight, etype2key,
                         train_edge_index, valid_edge_index, test_edge_index, test_edge_type, test_edge_weight),
-                       '../tmp/pkl/pubmed.pkl')
+                       '../tmp/HGB/pubmed/pubmed.pkl')
         else:
             node_type, x_dict, input_dims_dict, edge_index, edge_type, edge_weight, etype2key, train_edge_index, valid_edge_index, test_edge_index, test_edge_type, test_edge_weight = torch.load(
-                '../tmp/pkl/pubmed.pkl')
+                '../tmp/HGB/pubmed/pubmed.pkl')
         print(test_edge_type.unique())
         num_nodes_dict = {int(i): (node_type == int(i)).sum() for i in node_type.unique().tolist()}
         etypes = edge_type.unique().tolist()
