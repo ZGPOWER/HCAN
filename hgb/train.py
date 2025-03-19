@@ -5,7 +5,7 @@ import time
 import numpy as np
 import torch.cuda.amp as amp
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 import torch.nn.functional as F
 import torch
 import torch.nn as nn
@@ -35,9 +35,9 @@ def run(args):
 
     if args.to_undirected:
         transform = T.Compose([T.ToUndirected(merge=True)])
-        dataset = HGBDataset(root='../tmp/HGB', name=args.dataset, transform=transform)
+        dataset = HGBDataset(root='../../tmp/HGB', name=args.dataset, transform=transform)
     else:
-        dataset = HGBDataset(root='../tmp/HGB', name=args.dataset)
+        dataset = HGBDataset(root='../../tmp/HGB', name=args.dataset)
     data = dataset[0]
     print(data)
     nc_target_type = args.nc_target_type
@@ -49,10 +49,6 @@ def run(args):
         x_dict = {}
     else:
         x_dict = data.x_dict
-    if args.dataset == 'ACM':
-        for k, v in edge_index_dict.items():
-            if k[0] == k[-1]:
-                edge_index_dict[k] = remove_self_loops(v)[0]
 
     out = group_hetero_graph(edge_index_dict, num_nodes_dict)
     edge_index, edge_type, node_type, local_node_idx, local2global, key2int = out
@@ -62,9 +58,9 @@ def run(args):
                      node_type=node_type, local_node_idx=local_node_idx,
                      num_nodes=node_type.size(0))
     if args.dataset == 'IMDB':
-        homo_data.y = node_type.new_full((node_type.size(0), 5), -1).squeeze().float()
+        homo_data.y = node_type.new_full((node_type.size(0), 5), 0).squeeze().float()
     else:
-        homo_data.y = node_type.new_full((node_type.size(0), 1), -1).squeeze().long()
+        homo_data.y = node_type.new_full((node_type.size(0), 1), 0).squeeze().long()
     homo_data.y[local2global[nc_target_type]] = data.y_dict[nc_target_type]
     homo_data_mask = {}
     train_valid_indices = np.where(data[nc_target_type]['train_mask'] == True)[0]
@@ -79,6 +75,7 @@ def run(args):
     homo_data_mask['test_mask'] = torch.zeros((node_type.size(0)), dtype=torch.bool)
     homo_data_mask['test_mask'][local2global[nc_target_type][data[nc_target_type]['test_mask']]] = True
     homo_data = homo_data.to(args.device)
+    homo_data.y[homo_data.y==-1]=0
 
     if args.dataset == 'Freebase':
         x_dict = {}
@@ -95,40 +92,39 @@ def run(args):
                      num_heads=args.num_heads, dropout=args.dropout, att_dropout=args.att_dropout,
                      x_ntypes=list(x_dict.keys()), input_dims=input_dims_dict, use_norm=args.use_norm,
                      device=args.device,
-                     input_dropout=args.input_dropout, c_heads=args.c_heads).to(args.device)
+                     input_dropout=args.input_dropout, c_heads=args.c_heads, label_layer=args.label_layer).to(args.device)
     no_decay = ['bias', 'LayerNorm.weight']
     model_parameters = [{'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
                          'weight_decay': args.decay},
                         {'params': [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
                          'weight_decay': 0.0}]
-    optimizer = torch.optim.Adam(model_parameters, lr=args.lr, weight_decay=args.decay)
-    scaler = amp.GradScaler()
-    if args.dataset in ['DBLP']:
-        loss_func = FocalLoss(gamma=1)
-    else:
-        loss_func = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.AdamW(model_parameters, lr=args.lr, weight_decay=args.decay)
+    loss_func = nn.BCEWithLogitsLoss()
     def train():
         model.train()
+        embeds=None
         optimizer.zero_grad()
+        t1=time.time()
         train_mask = homo_data_mask['train_mask']
         out = model(x_dict, homo_data.edge_index, homo_data.edge_attr, homo_data.node_type,
-                    homo_data.local_node_idx, args.device)
+                    homo_data.local_node_idx, args.device, homo_data.y, homo_data_mask['train_mask'])
         out = out[train_mask]
         y = homo_data.y[train_mask]
         if args.dataset != "IMDB":
             labels = F.one_hot(y, num_classes).float()
         else:
             labels = y
-        loss = loss_func(out.float(), labels.float())
+        loss = loss_func(out, labels)
         loss.backward()
         optimizer.step()
-        return loss.item()
+        t3=time.time()
+        return loss.item(), t3-t1, embeds
 
     @torch.no_grad()
     def test():
         model.eval()
         out = model(x_dict, homo_data.edge_index, homo_data.edge_attr, homo_data.node_type,
-                    homo_data.local_node_idx, args.device)
+                    homo_data.local_node_idx, args.device, homo_data.y, homo_data_mask['train_mask'])
         macros = []
         micros = []
         for split in ['train_mask', 'valid_mask', 'test_mask']:
@@ -152,20 +148,26 @@ def run(args):
     best_val = 0
     best_test_macro, best_test_micro = 0, 0
     hold = 0
+    epochs_used=0
+    total_time=0
     for epoch in range(args.epochs):
-        loss = train()
+        loss, t, embeds = train()
+        epochs_used+=1
         [train_macro, valid_macro, test_macro], [train_micro, valid_micro, test_micro], valid_loss = test()
 
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f},'
               f'Train Macro: ({train_macro:.4f}, {train_micro:.4f}), Valid Macro: ({valid_macro:.4f}, {valid_micro:.4f}), '
               f'Test Macro: ({test_macro:.4f}, {test_micro:.4f}), Valid_loss: {valid_loss:.4f}')
+        total_time += t
+        if epoch<args.cs_epoch:
+            continue
         hold += 1
         if args.stopping == 'loss':
             if -valid_loss > best_loss:
                 best_loss = -valid_loss
-                hold = 0
                 best_test_macro = test_macro
                 best_test_micro = test_micro
+                hold = 0
         else:
             if best_val < (valid_micro+valid_macro):
                 best_val = valid_micro+valid_macro
@@ -180,4 +182,4 @@ def run(args):
                 best_test_micro = test_micro
         if hold >= args.patience:
             break
-    print("Best Macro-F1:{} Micro-F1:{}".format(best_test_macro, best_test_micro))
+    print("Best Macro-F1:{} Micro-F1:{},Average time:{}".format(best_test_macro, best_test_micro,total_time/epochs_used))
