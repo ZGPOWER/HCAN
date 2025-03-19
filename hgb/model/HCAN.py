@@ -9,7 +9,7 @@ class HCAN(nn.Module):
     def __init__(self, num_nodes_dict: dict, input_dim, hid_dim: int, output_dim: int, etypes: list,
                  num_layers: int = 2, L: int = 1, num_heads: int = 8, dropout: float = 0.5, att_dropout=0.5,
                  x_ntypes=None, input_dims=None, use_norm=False, device='cpu',
-                 negative_slope: float = 0.2, input_dropout: float = 0.0, decoder='proj', c_heads=1):
+                 negative_slope: float = 0.2, input_dropout: float = 0.0, decoder='proj', c_heads=1, label_layer=0):
         super(HCAN, self).__init__()
         self.num_nodes_dict = num_nodes_dict
         self.num_rels = len(etypes)
@@ -20,6 +20,7 @@ class HCAN(nn.Module):
         self.L = L
         self.num_heads = num_heads
         self.c_heads = c_heads
+        self.label_layer=label_layer
         self.input_dims = input_dims
         self.device = device
         self.dropout = dropout
@@ -54,6 +55,9 @@ class HCAN(nn.Module):
         if self.decoder == 'proj':
             self.proj = nn.Linear(hid_dim, output_dim, bias=False)
         self.norm = nn.LayerNorm(input_dim)
+        if self.label_layer > 0:
+            self.lp = LabelPropagation(num_layers=self.label_layer, alpha=0.0)
+            self.ow = nn.Parameter(torch.tensor([1.0,1.0]))
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -90,7 +94,7 @@ class HCAN(nn.Module):
 
         return h
 
-    def forward(self, x_dict, edge_index, edge_attr, node_type, local_node_idx, device):
+    def forward(self, x_dict, edge_index, edge_attr, node_type, local_node_idx, device, labels=None, mask=None):
         x = self.group_input(x_dict, node_type, local_node_idx, device)
         x = F.dropout(x, p=self.input_dropout, training=self.training)
         if edge_index.device != device:
@@ -104,4 +108,10 @@ class HCAN(nn.Module):
                 x = F.leaky_relu(x, negative_slope=self.negative_slope)
         if self.decoder == 'proj':
             x = self.proj(x)
+        if self.label_layer>0:
+            labels=labels.cpu()
+            edge_index=edge_index.cpu()
+            mask=mask.cpu()
+            lp_out = self.lp(labels,edge_index,mask).to(device)
+            x = self.ow[0]*x+self.ow[1]*lp_out
         return x
